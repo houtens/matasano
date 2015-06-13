@@ -87,6 +87,12 @@ for i, raw in enumerate(rows):
         if eng == 0 and cons_freq > 0.3 and vowel_freq > 0.10 and space_freq > 0.10:
             output_list.append(res)
 
+if len(output_list) != best:
+    print "Failed to find good English matches for all possible keys"
+    exit(1)
+
+
+
 # transpose the colums for output
 rows = ['' for x in range(len(output_list[0]))]
 for p in range(len(output_list)):
