@@ -7,6 +7,7 @@ nb = 4
 # number of rounds for the standard
 nr = 10
 
+# Lookup rather than generate the rcon values.
 rcon = [
   0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a,
   0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91, 0x39,
@@ -26,6 +27,7 @@ rcon = [
   0x61, 0xc2, 0x9f, 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb, 0x8d
 ]
 
+# Lookup sbox substitutions
 sbox = [
   0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
   0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -45,15 +47,16 @@ sbox = [
   0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
 ]
 
-# reverse sbox
+# Reverse sbox
 rsbox = []
 
-# Test with a random key
+# For testing: generate a sample key
 key = [x for x in range(nb * nk)]
 # Global round key to hold individual derived round keys
 rkey = []
 
 def xor_byte(a, b):
+    """Perform bytewise xor on two bytes"""
     if type(a) is int: 
         a = chr(a)
     if type(b) is int:
@@ -61,9 +64,11 @@ def xor_byte(a, b):
     return ord(a) ^ ord(b)
 
 def xor_word(a, b):
+    """xor the bytes of two equal-length strings"""
     return [xor_byte(x, y) for x, y in zip(a, b)]
 
 def print_key(key):
+    """Print a key as 16 separate hex bytes with a newline"""
     for x, k in enumerate(key):
         if x > 0 and x % 16 == 0: 
             print
@@ -71,6 +76,7 @@ def print_key(key):
     print
 
 def rot_word(word):
+    """Take a 4 byte word and rotate the first byte to last"""
     temp = word[0]
     word[0] = word[1]
     word[1] = word[2]
@@ -91,30 +97,41 @@ def add_rkey(round):
     pass
 
 def key_expansion(key):
-    # first round key is the key iteself, initially 4 bytes
+    # First round key is the key iteself, initially 4 bytes
     global rkey
-    # r=[0..3]
+    # Set it initally to be the 16 byte key, or 4 words
     rkey = key
 
     for r in range(4, nk * (nr + 1)):
+        # Copy the last 4 bytes to the next key state
         tkey = rkey[-4:]
         
         if r % nb == 0:
+            # Rotate first byte of the word
             tkey = rot_word(tkey)
 
+            # Apply the sbox translations
             tkey[0] = sbox[tkey[0]]
             tkey[1] = sbox[tkey[1]]
             tkey[2] = sbox[tkey[2]]
             tkey[3] = sbox[tkey[3]]
 
+            # xor first byte of the word with the rcon value for this round
             tkey[0] = xor_byte(tkey[0], rcon[r/4])
 
+        # xor with previous round key.  Word by word
         tkey = xor_word(tkey, rkey[-16:-12])
+        # Append to the round key
         rkey.extend(tkey)
 
 def cipher():
+    """Perform AES-128 in ECB mode"""
     pass
 
+# Generate the round keys
 key_expansion(key)
+
+# Debug: print the round keys
 print_key(rkey)
+
 
